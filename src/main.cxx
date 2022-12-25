@@ -23,9 +23,12 @@ int main()
 
     FFBT ffbt;
     int status;
+    
+    status = ffbt.Load_NSS(nss_dir);
+    if (status!=0) { ffbt.NSS_KILL(); return 0; }
+    
     for (auto profile = begin(valid_profiles); profile != end(valid_profiles); ++profile)
     {
-        status = ffbt.Load_NSS(nss_dir);            if (status!=0) { std::cerr << "Exiting\n"; ffbt.NSS_KILL(); return 0; }
         status = ffbt.Initialize_Profile(*profile); if (status!=0) { std::cerr << "Exiting\n"; ffbt.NSS_KILL(); return 0; }
         status = ffbt.Check_Authentication();       if (status!=0) { std::cerr << "Exiting\n"; ffbt.NSS_KILL(); return 0; }
         status = ffbt.find_credentials(*profile);   if (status!=0) { std::cerr << "Exiting\n"; ffbt.NSS_KILL(); return 0; }
