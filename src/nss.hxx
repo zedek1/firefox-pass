@@ -38,20 +38,3 @@ typedef int (*PK11_CheckUserPassword_t)(PK11SlotInfo*, unsigned char*); PK11_Che
 typedef int (*PK11SDR_Decrypt_t)(SECItem*, SECItem*, void*); PK11SDR_Decrypt_t PK11SDR_Decrypt;
 typedef void (*SECITEM_ZfreeItem_t)(SECItem*, unsigned int); SECITEM_ZfreeItem_t SECITEM_ZfreeItem;
 };
-
-/*
-#define DYNAMIC_FUNCTIONS \
-    X(NSS_Initialize) X(NSS_Shutdown) X(PK11_GetInternalKeySlot) X(PK11_FreeSlot) \
-    X(PK11_NeedLogin) X(PK11_CheckUserPassword) X(PK11SDR_Decrypt) X(SECITEM_ZfreeItem)
-
-#define X(f) \
-    f##_t f = (f##_t)GetProcAddress(nss_library, #f); \
-    if (f == NULL) { \
-        std::cerr << "Error loading " << #f << std::endl; \
-        return 1; \
-    }
-
-DYNAMIC_FUNCTIONS
-
-#undef X
-*/
