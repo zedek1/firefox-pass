@@ -5,9 +5,7 @@
 #include <string>
 #include <filesystem>
 #include <unordered_map>
-
 #include <Windows.h>
-#include <ShlObj.h>
 
 class NSS {
 public:
