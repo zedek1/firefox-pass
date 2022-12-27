@@ -27,7 +27,7 @@ std::filesystem::path get_nss_location()
         }
     }
     std::cerr << "[-] Could not find NSS :( Exiting...\n\n";
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 
@@ -41,7 +41,6 @@ std::vector<std::filesystem::path> get_valid_profiles()
     prof_path =  prof_path / "Mozilla" / "Firefox" / "Profiles";
 
     // could read profiles.ini or just check each dir in Profiles folder.
-    // profiles.ini is a better practice i guess
     // check for signon.sqlite or login.json
     // add profile to vector if valid
     std::vector<std::filesystem::path> valid_profile_list;
@@ -60,13 +59,13 @@ std::vector<std::filesystem::path> get_valid_profiles()
     }
     if (valid_profile_list.empty()) {
         std::cerr << "Could not find a valid profile... Exiting\n";
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     return valid_profile_list;
 }
 
 
-int FFBT::retrieve_credentials(std::filesystem::path profile_path, int output_type)
+bool FFBT::retrieve_credentials(std::filesystem::path profile_path, int output_type)
 {
     // instead do if exists logins.json & signons.sqlite. these try catch are annoying
     std::vector<std::vector<std::string>> encrypted_creds;
@@ -75,7 +74,7 @@ int FFBT::retrieve_credentials(std::filesystem::path profile_path, int output_ty
         encrypted_creds = get_json_credentials(profile_path / "logins.json");
         if (encrypted_creds.empty()) {
             std::cerr << "logins.json exists but is empty or something really fucked up\n";
-            return 1; // throw to catch
+            return false; // throw to catch
         }
     }
     catch (const nlohmann::json::exception & e) {
@@ -85,12 +84,12 @@ int FFBT::retrieve_credentials(std::filesystem::path profile_path, int output_ty
             if (encrypted_creds.empty()) {
                 std::cerr << "signons.sqlite exists but is empty or something really fucked up\n";
                 std::cerr << "Could not retrieve any credentials\n";
-                return 1;
+                return false;
             }
         }
         catch (...) { // TODO: specific exception
             std::cerr << "Could not retrieve any credentials\n";
-            return 1;
+            return false;
         }
     }
     //std::cout << "Successfully retrieved credentials\n";
@@ -108,7 +107,7 @@ int FFBT::retrieve_credentials(std::filesystem::path profile_path, int output_ty
             std::cerr << "Unable to output credentials fo type '" << output_type << "'\n";
         }
     }
-    return 0;
+    return true;
 }
 
 
@@ -206,7 +205,7 @@ std::vector<std::vector<std::string>> FFBT::decrypt_credentials(std::vector<std:
     return out;
 }
 
-int FFBT::output_credentials(std::vector<std::vector<std::string>> decrypted_creds, int output_type)
+bool FFBT::output_credentials(std::vector<std::vector<std::string>> decrypted_creds, int output_type)
 {
     if (output_type == 1) {
         //trycatch
@@ -218,7 +217,7 @@ int FFBT::output_credentials(std::vector<std::vector<std::string>> decrypted_cre
     }
     else {
         // not a valid output option, outputting as txt
-        return 1;
+        return false;
     }
-    return 0;
+    return true;
 }

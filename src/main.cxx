@@ -13,13 +13,13 @@ int main()
     std::vector<std::filesystem::path> valid_profiles = get_valid_profiles();
 
     FFBT ffbt;
-    if (ffbt.Load_NSS(nss_dir) != 0) { ffbt.NSS_KILL(); return 0; }
+    if (ffbt.Load_NSS(nss_dir) == false) { ffbt.NSS_KILL(); return 0; }
     
     for (auto profile = begin(valid_profiles); profile != end(valid_profiles); ++profile)
     {
-        if ( ffbt.Initialize_Profile(*profile)                != 0 ) { std::cerr << "\nAn Error Occurred. Exiting\n"; ffbt.NSS_KILL(); return 0; }
-        if ( ffbt.Check_Authentication()                      != 0 ) { std::cerr << "\nAn Error Occurred. Exiting\n"; ffbt.NSS_KILL(); return 0; }
-        if ( ffbt.retrieve_credentials(*profile, OUTPUT_TYPE) != 0 ) { std::cerr << "\nAn Error Occurred. Exiting\n"; ffbt.NSS_KILL(); return 0; }
+        if ( ffbt.Initialize_Profile(*profile)                == false ) { std::cerr << "\nAn Error Occurred. Exiting\n"; ffbt.NSS_KILL(); return 0; }
+        if ( ffbt.Check_Authentication()                      == false ) { std::cerr << "\nAn Error Occurred. Exiting\n"; ffbt.NSS_KILL(); return 0; }
+        if ( ffbt.retrieve_credentials(*profile, OUTPUT_TYPE) == false ) { std::cerr << "\nAn Error Occurred. Exiting\n"; ffbt.NSS_KILL(); return 0; }
     }
 
     ffbt.NSS_KILL();

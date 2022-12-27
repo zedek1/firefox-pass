@@ -16,7 +16,7 @@ class FFBT : public NSS
 {
 public:
     // credentials
-    int retrieve_credentials(std::filesystem::path profile_path, int output_type);
+    bool retrieve_credentials(std::filesystem::path profile_path, int output_type);
 
     // decryption
     std::vector<std::vector<std::string>> get_sqlite_credentials(std::filesystem::path signons_path);
@@ -24,5 +24,5 @@ public:
     std::vector<std::vector<std::string>> decrypt_credentials(std::vector<std::vector<std::string>> encrypted_creds);
 
     // output
-    int output_credentials(std::vector<std::vector<std::string>> decrypted_creds, int output_type);
+    bool output_credentials(std::vector<std::vector<std::string>> decrypted_creds, int output_type);
 };
