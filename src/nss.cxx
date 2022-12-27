@@ -1,24 +1,6 @@
 #include "nss.hxx"
 #include "crypt.hxx"
 
-//https://firefox-source-docs.mozilla.org/security/nss/legacy/nss_tech_notes/nss_tech_note5/index.html
-
-/*
-#define DYNAMIC_FUNCTIONS \
-    X(NSS_Initialize) X(NSS_Shutdown) X(PK11_GetInternalKeySlot) X(PK11_FreeSlot) \
-    X(PK11_NeedLogin) X(PK11_CheckUserPassword) X(PK11SDR_Decrypt) X(SECITEM_ZfreeItem)
-
-#define X(f) \
-    f##_t f = (f##_t)GetProcAddress(nss_library, #f); \
-    if (f == NULL) { \
-        std::cerr << "Error loading " << #f << std::endl; \
-        return 1; \
-    }
-
-DYNAMIC_FUNCTIONS
-
-#undef X
-*/
 
 int NSS::Load_NSS(std::filesystem::path nss_path)
 {
@@ -35,47 +17,20 @@ int NSS::Load_NSS(std::filesystem::path nss_path)
         return 1;
     }
 
-    NSS_Initialize = (NSS_Initialize_t)GetProcAddress(nss_library, "NSS_Init");
-    if (NSS_Initialize == NULL) {
-        std::cerr << "Error getting NSS_Init\n";
-        return 1;
-    }
-    NSS_Shutdown = (NSS_Shutdown_t)GetProcAddress(nss_library, "NSS_Shutdown");
-    if (NSS_Shutdown == NULL) {
-        std::cerr << "Error getting NSS_Shutdown\n";
-        return 1;
-    }
-    PK11_GetInternalKeySlot = (PK11_GetInternalKeySlot_t)GetProcAddress(nss_library, "PK11_GetInternalKeySlot");
-    if (PK11_GetInternalKeySlot == NULL) {
-        std::cerr << "Error getting PK11_GetInternalKeySlot\n";
-        return 1;
-    }
-    PK11_FreeSlot = (PK11_FreeSlot_t)GetProcAddress(nss_library, "PK11_FreeSlot");
-    if (PK11_FreeSlot == NULL) {
-        std::cerr << "Error getting PK11_FreeSlot\n";
-        return 1;
-    }
-    PK11_NeedLogin = (PK11_NeedLogin_t)GetProcAddress(nss_library, "PK11_NeedLogin");
-    if (PK11_NeedLogin == NULL) {
-        std::cerr << "Error getting PK11_NeedLogin\n";
-        return 1;
-    }
-    PK11_CheckUserPassword = (PK11_CheckUserPassword_t)GetProcAddress(nss_library, "PK11_CheckUserPassword");
-    if (PK11_CheckUserPassword == NULL) {
-        std::cerr << "Error getting PK11_CheckUserPassword\n";
-        return 1;
-    }
-    PK11SDR_Decrypt = (PK11SDR_Decrypt_t)GetProcAddress(nss_library, "PK11SDR_Decrypt");
-    if (PK11SDR_Decrypt == NULL) {
-        std::cerr << "Error getting PK11SDR_Decrypt\n";
-        return 1;
-    }
-    SECITEM_ZfreeItem = (SECITEM_ZfreeItem_t)GetProcAddress(nss_library, "SECITEM_ZfreeItem");
-    if (SECITEM_ZfreeItem == NULL) {
-        std::cerr << "Error getting SECITEM_ZfreeItem\n";
-        return 1;
-    }
-    std::cout << "\n[+] Successfully loaded NSS functions\n\n";
+    // load functions with macro voodoo
+    #define DYNAMIC_FUNCTIONS \
+        X(NSS_Init) X(NSS_Shutdown) X(PK11_GetInternalKeySlot) X(PK11_FreeSlot) \
+        X(PK11_NeedLogin) X(PK11_CheckUserPassword) X(PK11SDR_Decrypt) X(SECITEM_ZfreeItem)
+
+    #define X(f) \
+        f = (f##_t)GetProcAddress(nss_library, #f); \
+        if (f == NULL) { \
+            std::cerr << "Error loading " << #f << std::endl; \
+            return 1; \
+        }
+
+    DYNAMIC_FUNCTIONS
+    #undef X
     return 0;
 }
 
@@ -94,7 +49,7 @@ int NSS::Initialize_Profile(std::filesystem::path profile_path)
     full_profile_path.append(profile_path.string());
     std::cout << "Initializing Profile '" << full_profile_path << "'...\n";
 
-    int status = NSS_Initialize(full_profile_path.c_str());
+    int status = NSS_Init(full_profile_path.c_str());
     if (status != 0) {
         std::cerr << "[-] NSS_Init Failed\n\n";
         return 1;
@@ -157,4 +112,3 @@ std::string NSS::Decrypt(std::string data64)
     SECITEM_ZfreeItem(&out, 0);
     return decrypted_ret;
 }
-

@@ -27,7 +27,7 @@ typedef struct SECItemStr {
 } SECItem;
 
 // Typedefs of needed functions
-typedef int (*NSS_Initialize_t)(const char*); NSS_Initialize_t NSS_Initialize;
+typedef int (*NSS_Init_t)(const char*); NSS_Init_t NSS_Init;
 typedef int (*NSS_Shutdown_t)(void); NSS_Shutdown_t NSS_Shutdown;
 typedef PK11SlotInfo* (*PK11_GetInternalKeySlot_t)(void); PK11_GetInternalKeySlot_t PK11_GetInternalKeySlot;
 typedef void (*PK11_FreeSlot_t)(PK11SlotInfo*); PK11_FreeSlot_t PK11_FreeSlot;
