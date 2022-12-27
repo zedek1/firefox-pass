@@ -1,7 +1,6 @@
 #include "nss.hxx"
 #include "crypt.hxx"
 
-
 bool NSS::Load_NSS(std::filesystem::path nss_path)
 {
     // setting path is necessary to load the dll
