@@ -1,2 +1,4 @@
 # firefox-pass
-i hate nss
+i hat nss
+
+will be combined with curlews google version
